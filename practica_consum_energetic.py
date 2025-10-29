@@ -156,3 +156,4 @@ out['Residual'] = residuals
 out.to_csv("predictions_and_residuals.csv", index=False)
 print("\nSe ha guardado 'predictions_and_residuals.csv' con predicciones y residuales.")
 
+
