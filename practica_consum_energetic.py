@@ -123,3 +123,76 @@ plt.show()
 print(f"\nR² model polinòmic: {r2_poly:.4f}")
 
 print("\n✅ Anàlisi completada correctament.")
+
+# ---------- Análisis adicional y diagnóstico (pegar al final del script) ----------
+
+from sklearn.model_selection import cross_val_score, KFold
+import seaborn as sns
+import math
+
+# RMSE (más interpretable que MSE)
+rmse = math.sqrt(mse)
+print(f"\nRMSE: {rmse:.2f} MWh (Error medio cuadrático raíz)")
+
+# Predicción ejemplo: ¿qué predice el modelo a 0°C?
+pred_0 = model.predict([[0]])[0]
+print(f"Predicción del consumo si Temperatura = 0°C: {pred_0:.2f} MWh")
+
+# Residuales
+residuals = y - y_pred
+print(f"\nEstadísticas residuales:\n  media: {residuals.mean():.2f}\n  std: {residuals.std():.2f}\n  min: {residuals.min():.2f}\n  max: {residuals.max():.2f}")
+
+# Gráfico 1: residuales vs predicho
+plt.figure(figsize=(8,4))
+plt.scatter(y_pred, residuals, alpha=0.6)
+plt.axhline(0, color='red', linestyle='--')
+plt.title("Residuales vs Predicciones")
+plt.xlabel("Predicho (MWh)")
+plt.ylabel("Residuales (MWh)")
+plt.grid(True)
+plt.show()
+
+# Gráfico 2: histograma de residuales (normalidad)
+plt.figure(figsize=(8,4))
+plt.hist(residuals, bins=40, edgecolor='k', alpha=0.7)
+plt.title("Histograma residuales")
+plt.xlabel("Residual (MWh)")
+plt.ylabel("Frecuencia")
+plt.show()
+
+# Test visual: residuales vs temperatura (para ver no-linealidad)
+plt.figure(figsize=(8,4))
+plt.scatter(data['Temperature'], residuals, alpha=0.6)
+plt.axhline(0, color='red', linestyle='--')
+plt.title("Residuales vs Temperatura")
+plt.xlabel("Temperatura (°C)")
+plt.ylabel("Residuales (MWh)")
+plt.grid(True)
+plt.show()
+
+# Validación cruzada (K-Fold) — para estimar desempeño fuera de muestra
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+neg_mse_scores = cross_val_score(model, X, y, scoring='neg_mean_squared_error', cv=kf)
+mse_cv = -neg_mse_scores.mean()
+rmse_cv = math.sqrt(mse_cv)
+r2_cv_scores = cross_val_score(model, X, y, scoring='r2', cv=kf)
+r2_cv = r2_cv_scores.mean()
+
+print(f"\nValidación cruzada (5-fold):\n  RMSE_cv: {rmse_cv:.2f} MWh\n  R²_cv: {r2_cv:.4f}")
+
+# Sugerencia automática simple
+print("\nSugerencia:")
+if r2 < 0.4:
+    print(" - R² bajo: considera usar variables adicionales (estacionalidad, día de la semana), features polinómicas o modelos no lineales.")
+elif r2 < 0.7:
+    print(" - R² moderado: el modelo captura parte de la variabilidad, mejora posible con más features o polinomio.")
+else:
+    print(" - R² alto: el modelo lineal simple probablemente captura bien la relación principal.")
+
+# Si quieres, guarda un CSV con las predicciones y residuales
+out = data.copy()
+out['Predicted'] = y_pred
+out['Residual'] = residuals
+out.to_csv("predictions_and_residuals.csv", index=False)
+print("\nSe ha guardado 'predictions_and_residuals.csv' con predicciones y residuales.")
+
